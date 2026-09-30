@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Settings, Shirt } from 'lucide-react';
 import { StepInput } from './components/StepInput';
 import { StepClarify } from './components/StepClarify';
@@ -18,6 +18,8 @@ Sales Manager
 function App() {
   const [step, setStep] = useState<AppStep>('input');
   const [loading, setLoading] = useState(false);
+  const inFlight = useRef(false);
+  const [error, setError] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   // Settings State
@@ -34,13 +36,13 @@ function App() {
 
   // Load settings from LocalStorage on mount
   useEffect(() => {
-    const savedApiKey = localStorage.getItem('sr_api_key');
-    const savedModel = localStorage.getItem('sr_model');
-    const savedSig = localStorage.getItem('sr_signature');
-
-    if (savedApiKey) setApiKey(savedApiKey);
-    if (savedModel) setModelName(savedModel);
-    if (savedSig) setSignature(savedSig);
+    try {
+      localStorage.removeItem('sr_api_key');
+      const savedModel = localStorage.getItem('sr_model');
+      const savedSig = localStorage.getItem('sr_signature');
+      if (savedModel) setModelName(savedModel);
+      if (savedSig) setSignature(savedSig);
+    } catch { /* Optional settings storage may be unavailable. */ }
   }, []);
 
   // Save settings handler
@@ -49,15 +51,20 @@ function App() {
     setModelName(settings.modelName);
     setSignature(settings.signature);
 
-    localStorage.setItem('sr_api_key', settings.apiKey);
-    localStorage.setItem('sr_model', settings.modelName);
-    localStorage.setItem('sr_signature', settings.signature);
+    try {
+      localStorage.removeItem('sr_api_key');
+      localStorage.setItem('sr_model', settings.modelName);
+      localStorage.setItem('sr_signature', settings.signature);
+    } catch { /* The current in-memory settings still work. */ }
   };
 
   // Step 1 -> 2: Analyze Email
   const handleAnalyze = async () => {
     if (!context.customerEmail.trim()) return;
     
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setError('');
     setLoading(true);
     try {
       // Pass config to service
@@ -66,15 +73,18 @@ function App() {
       setContext(prev => ({ ...prev, analysis }));
       setStep('clarify');
     } catch (error) {
-      console.error(error);
-      alert("分析邮件失败，请检查网络连接或 API Key 设置。");
+      setError("分析失败，请检查 API Key 和网络后重试；输入已保留。");
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   };
 
   // Step 2 -> 3: Generate Email
   const handleGenerate = async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setError('');
     setLoading(true);
     try {
       // Pass config to service
@@ -82,9 +92,9 @@ function App() {
       setContext(prev => ({ ...prev, generatedEmail: result }));
       setStep('result');
     } catch (error) {
-      console.error(error);
-      alert("生成邮件失败，请重试。");
+      setError("生成失败，请重试；输入已保留。");
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   };
@@ -115,6 +125,8 @@ function App() {
             </div>
           </div>
           <button 
+            aria-label="设置"
+            disabled={loading}
             onClick={() => setIsSettingsOpen(true)}
             className="p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-colors active:bg-slate-100"
           >
@@ -129,6 +141,8 @@ function App() {
 
         {/* Main Content */}
         <main className="flex-1 p-5 overflow-hidden flex flex-col">
+          <p className="text-xs text-slate-500 mb-3">邮件和备注将发送至 Google AI；请仅提交有权处理的数据，并人工核对草稿。</p>
+          {error && <p role="alert" className="text-red-700 mb-3">{error}</p>}
           {step === 'input' && (
             <StepInput 
               value={context.customerEmail} 

@@ -63,10 +63,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               type="password"
               value={localApiKey}
               onChange={(e) => setLocalApiKey(e.target.value)}
-              placeholder="sk-..."
+              placeholder="Google API Key"
               className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none transition-all placeholder:text-slate-300 font-mono"
             />
-            <p className="text-xs text-slate-400 mt-1">留空则使用环境变量中的默认 Key。</p>
+            <p className="text-xs text-slate-400 mt-1">仅使用您个人的 Google API Key，仅在本页内存保存，刷新即清除。清空后保存可移除。页面脚本仍能访问此 Key。</p>
           </div>
 
           {/* Model Name Section */}
@@ -82,7 +82,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               placeholder="e.g. gemini-3-flash-preview"
               className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none transition-all font-mono"
             />
-             <p className="text-xs text-slate-400 mt-1">例如: gemini-3-flash-preview, glm-4.7-flash 等。</p>
+             <p className="text-xs text-slate-400 mt-1">仅支持 Google Gemini 模型。</p>
           </div>
 
           {/* Signature Section */}
